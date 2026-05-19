@@ -1,0 +1,1799 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mood-O-Meter By HackOPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#09090d;
+  --s1:#111117;
+  --s2:#16161e;
+  --s3:#1d1d28;
+  --br:rgba(255,255,255,0.07);
+  --br2:rgba(255,255,255,0.13);
+  --tx:#ede9e2;
+  --tx-sub:#7a7990;
+  --tx-fade:#3e3e52;
+  --gold:#e8b24a;
+  --gold-glow:rgba(232,178,74,0.22);
+  --teal:#6ecfb5;
+  --rose:#e87070;
+  --r:14px;
+}
+
+body.light{
+  --bg:#f5f0e8;
+  --s1:#fff;
+  --s2:#f0ebe0;
+  --s3:#e8e2d4;
+  --br:rgba(0,0,0,0.08);
+  --br2:rgba(0,0,0,0.14);
+  --tx:#1a1710;
+  --tx-sub:#5a5548;
+  --tx-fade:#b0aa98;
+}
+
+body{
+  font-family:'Outfit',sans-serif;
+  background:var(--bg);
+  color:var(--tx);
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background .35s,color .35s;
+}
+
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 10%, rgba(232,178,74,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 85% 90%, rgba(110,207,181,0.05) 0%, transparent 70%);
+}
+
+#splash{
+  position:fixed;
+  inset:0;
+  background:var(--bg);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+  gap:10px;
+  transition:opacity .7s ease,transform .7s ease;
+}
+
+.sp-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.6rem;
+  letter-spacing:5px;
+  text-transform:uppercase;
+  color:var(--gold);
+  background:rgba(232,178,74,0.1);
+  border:1px solid rgba(232,178,74,0.25);
+  padding:5px 18px;
+  border-radius:100px;
+  margin-bottom:6px;
+}
+
+.sp-title{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(3.2rem,11vw,6rem);
+  font-weight:900;
+  letter-spacing:-3px;
+  line-height:.95;
+  text-align:center;
+  color:var(--tx);
+}
+
+.sp-title em{
+  font-style:italic;
+  color:var(--gold);
+}
+
+.sp-sub{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;
+  letter-spacing:5px;
+  text-transform:uppercase;
+  color:var(--tx-fade);
+  margin-top:4px;
+}
+
+.sp-dots{
+  display:flex;
+  gap:8px;
+  margin-top:28px;
+}
+
+.sp-dots span{
+  width:7px;height:7px;
+  border-radius:50%;
+  animation:dpulse 1.3s ease-in-out infinite;
+}
+
+.sp-dots span:nth-child(1){background:var(--gold);}
+.sp-dots span:nth-child(2){animation-delay:.2s;background:#a78bfa;}
+.sp-dots span:nth-child(3){animation-delay:.4s;background:var(--teal);}
+
+@keyframes dpulse{
+  0%,80%,100%{transform:scale(.45);opacity:.25}
+  40%{transform:scale(1.2);opacity:1}
+}
+
+#app{
+  display:none;
+  position:relative;
+  z-index:1;
+  max-width:580px;
+  margin:0 auto;
+  padding:0 18px 100px;
+}
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:50;
+  background:var(--bg);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 0 14px;
+  border-bottom:1px solid var(--br);
+  margin-bottom:26px;
+  transition:background .35s;
+}
+
+.logo-mark{
+  font-family:'Playfair Display',serif;
+  font-weight:700;
+  font-size:1.05rem;
+  letter-spacing:-.3px;
+  color:var(--tx);
+}
+
+.logo-mark span{color:var(--gold);}
+
+.topbar-right{display:flex;align-items:center;gap:10px;}
+
+.dev-badge{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--teal);
+  background:rgba(110,207,181,0.1);
+  border:1px solid rgba(110,207,181,0.22);
+  padding:5px 10px;
+  border-radius:8px;
+}
+
+.theme-btn{
+  width:38px;height:38px;
+  border-radius:50%;
+  border:1px solid var(--br2);
+  background:var(--s2);
+  cursor:pointer;
+  font-size:1rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .3s,background .3s;
+  color:var(--tx-sub);
+}
+
+.theme-btn:hover{transform:rotate(22deg) scale(1.1);background:var(--s3);}
+
+.tab-nav{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:5px;
+  background:var(--s1);
+  border:1px solid var(--br);
+  border-radius:18px;
+  padding:5px;
+  margin-bottom:30px;
+}
+
+.tab-btn{
+  padding:11px 6px;
+  border:none;
+  border-radius:12px;
+  background:transparent;
+  color:var(--tx-fade);
+  font-family:'JetBrains Mono',monospace;
+  font-size:.62rem;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:background .2s,color .2s;
+}
+
+.tab-btn.active{
+  background:var(--s3);
+  color:var(--tx);
+}
+
+.tab-btn:hover:not(.active){color:var(--tx-sub);}
+
+.tab-panel{display:none;}
+.tab-panel.active{display:block;animation:fadeUp .4s ease forwards;}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(14px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;
+  letter-spacing:4px;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin-bottom:6px;
+}
+
+.section-title{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.7rem,5vw,2.2rem);
+  font-weight:900;
+  letter-spacing:-1px;
+  line-height:1.05;
+  color:var(--tx);
+  margin-bottom:4px;
+}
+
+.section-sub{
+  font-size:.83rem;
+  color:var(--tx-sub);
+  line-height:1.55;
+  margin-bottom:28px;
+  font-weight:300;
+}
+
+.field{margin-bottom:20px;}
+
+.field-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;
+  letter-spacing:2.5px;
+  text-transform:uppercase;
+  color:var(--tx-fade);
+  display:block;
+  margin-bottom:8px;
+}
+
+.txt-input{
+  width:100%;
+  padding:13px 16px;
+  background:var(--s1);
+  border:1.5px solid var(--br);
+  border-radius:var(--r);
+  color:var(--tx);
+  font-family:'Outfit',sans-serif;
+  font-size:.9rem;
+  font-weight:500;
+  outline:none;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+  appearance:none;
+}
+
+.txt-input::placeholder{color:var(--tx-fade);}
+
+.txt-input:focus{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px var(--gold-glow);
+  background:var(--s2);
+}
+
+.inline-err{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.62rem;
+  color:var(--rose);
+  margin-top:7px;
+  padding-left:2px;
+  animation:fadeUp .25s ease;
+}
+
+.pill-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+.pill{
+  flex:1;
+  min-width:70px;
+  padding:10px 14px;
+  background:var(--s1);
+  border:1.5px solid var(--br);
+  border-radius:10px;
+  color:var(--tx-sub);
+  font-family:'Outfit',sans-serif;
+  font-size:.82rem;
+  font-weight:500;
+  cursor:pointer;
+  text-align:center;
+  transition:all .2s;
+  user-select:none;
+}
+
+.pill:hover{border-color:var(--br2);color:var(--tx);}
+
+.pill.sel{
+  background:rgba(232,178,74,0.1);
+  border-color:var(--gold);
+  color:var(--gold);
+}
+
+.mood-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;
+}
+
+.mood-card{
+  padding:16px 6px 12px;
+  background:var(--s1);
+  border:1.5px solid var(--br);
+  border-radius:16px;
+  cursor:pointer;
+  text-align:center;
+  transition:all .25s cubic-bezier(.34,1.56,.64,1);
+  user-select:none;
+}
+
+.mood-card:hover{transform:translateY(-5px);border-color:var(--br2);}
+
+.mood-card.sel{transform:translateY(-7px) scale(1.05);}
+
+.m-emoji{
+  font-size:1.65rem;
+  display:block;
+  margin-bottom:5px;
+  transition:transform .25s;
+}
+
+.mood-card:hover .m-emoji{transform:scale(1.18);}
+
+.m-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.52rem;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  color:var(--tx-fade);
+}
+
+.mood-card.sel .m-lbl{color:var(--tx-sub);}
+
+.mood-card[data-mood="Happy"].sel{background:rgba(251,191,36,.1);border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.1),0 10px 24px rgba(251,191,36,.1);}
+.mood-card[data-mood="Neutral"].sel{background:rgba(148,163,184,.1);border-color:#94a3b8;box-shadow:0 0 0 3px rgba(148,163,184,.1),0 10px 24px rgba(148,163,184,.08);}
+.mood-card[data-mood="Stressed"].sel{background:rgba(251,146,60,.1);border-color:#fb923c;box-shadow:0 0 0 3px rgba(251,146,60,.1),0 10px 24px rgba(251,146,60,.1);}
+.mood-card[data-mood="Sad"].sel{background:rgba(96,165,250,.1);border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.1),0 10px 24px rgba(96,165,250,.1);}
+.mood-card[data-mood="Angry"].sel{background:rgba(248,113,113,.1);border-color:#f87171;box-shadow:0 0 0 3px rgba(248,113,113,.1),0 10px 24px rgba(248,113,113,.1);}
+
+.energy-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+
+.energy-card{
+  padding:18px 10px;
+  background:var(--s1);
+  border:1.5px solid var(--br);
+  border-radius:16px;
+  cursor:pointer;
+  text-align:center;
+  transition:all .22s;
+  user-select:none;
+}
+
+.energy-card:hover{border-color:var(--br2);}
+
+.e-icon{font-size:1.5rem;display:block;margin-bottom:5px;}
+
+.e-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--tx-fade);
+}
+
+.energy-card.sel{
+  background:rgba(110,207,181,.1);
+  border-color:var(--teal);
+  box-shadow:0 0 0 3px rgba(110,207,181,.1);
+}
+
+.energy-card.sel .e-lbl{color:var(--teal);}
+
+.dyn-field{
+  display:none;
+  background:var(--s1);
+  border:1px solid var(--br);
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:20px;
+  animation:fadeUp .3s ease;
+}
+
+.dyn-field .field-lbl{color:var(--teal);}
+
+.sel-wrap{position:relative;}
+.sel-wrap::after{
+  content:'▾';
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  color:var(--tx-fade);pointer-events:none;font-size:.78rem;
+}
+
+select.txt-input{padding-right:36px;}
+select option{background:#16161e;color:var(--tx);}
+body.light select option{background:#fff;}
+
+.submit-btn{
+  width:100%;
+  padding:16px;
+  background:var(--gold);
+  border:none;
+  border-radius:18px;
+  color:#0a0a0d;
+  font-family:'Playfair Display',serif;
+  font-size:1rem;
+  font-weight:700;
+  cursor:pointer;
+  margin-top:8px;
+  letter-spacing:.3px;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s,filter .2s;
+  box-shadow:0 4px 24px rgba(232,178,74,.35);
+}
+
+.submit-btn:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 32px rgba(232,178,74,.45);
+  filter:brightness(1.08);
+}
+
+.submit-btn:active{transform:translateY(0);}
+
+.btn-sec{
+  width:100%;
+  padding:12px;
+  background:transparent;
+  border:1.5px solid var(--br2);
+  border-radius:16px;
+  color:var(--tx-sub);
+  font-family:'JetBrains Mono',monospace;
+  font-size:.62rem;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  cursor:pointer;
+  margin-top:10px;
+  transition:all .2s;
+}
+
+.btn-sec:hover{border-color:var(--gold);color:var(--gold);background:rgba(232,178,74,.05);}
+
+.loading-wrap{text-align:center;padding:44px 0;animation:fadeUp .3s ease;}
+.ld-dots{display:flex;gap:8px;justify-content:center;margin-bottom:16px;}
+.ld-dots span{width:9px;height:9px;border-radius:50%;background:var(--gold);animation:dpulse 1.1s ease-in-out infinite;}
+.ld-dots span:nth-child(2){animation-delay:.15s;}
+.ld-dots span:nth-child(3){animation-delay:.3s;}
+.ld-txt{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:4px;text-transform:uppercase;color:var(--tx-fade);}
+
+.result-eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;letter-spacing:4px;text-transform:uppercase;
+  color:var(--teal);margin-bottom:8px;
+}
+
+.result-title{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.5rem,5vw,1.9rem);
+  font-weight:900;letter-spacing:-0.7px;line-height:1.1;
+  color:var(--tx);margin-bottom:6px;
+}
+
+.quote-block{
+  padding:16px 0 16px 18px;
+  border-left:2.5px solid var(--gold);
+  margin-bottom:22px;
+}
+
+.quote-txt{font-size:.86rem;font-style:italic;color:var(--tx-sub);line-height:1.6;margin-bottom:6px;}
+.quote-auth{font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--tx-fade);}
+
+.tips-list{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+
+.tip-item{
+  display:flex;align-items:center;gap:14px;
+  background:var(--s1);
+  border:1px solid var(--br);
+  border-radius:16px;
+  padding:16px 18px;
+  cursor:pointer;
+  opacity:0;transform:translateX(-10px);
+  animation:slideIn .4s ease forwards;
+  transition:background .2s,border-color .2s,transform .2s,box-shadow .2s;
+}
+
+.tip-item:nth-child(1){animation-delay:.05s;}
+.tip-item:nth-child(2){animation-delay:.15s;}
+.tip-item:nth-child(3){animation-delay:.25s;}
+
+@keyframes slideIn{to{opacity:1;transform:translateX(0)}}
+
+.tip-item:hover{
+  background:var(--s2);
+  border-color:rgba(232,178,74,.3);
+  transform:translateX(5px);
+  box-shadow:4px 4px 0 rgba(0,0,0,.12);
+}
+
+.tip-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--gold);flex-shrink:0;
+  box-shadow:0 0 8px var(--gold-glow);
+}
+
+.tip-txt{flex:1;font-size:.87rem;font-weight:500;color:var(--tx);}
+.tip-arr{color:var(--tx-fade);font-size:.8rem;transition:transform .2s,color .2s;}
+.tip-item:hover .tip-arr{transform:translateX(3px);color:var(--gold);}
+
+.res-actions{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
+
+.btn-teal{
+  width:100%;padding:12px;
+  background:rgba(110,207,181,.08);
+  border:1.5px solid rgba(110,207,181,.25);
+  border-radius:16px;color:var(--teal);
+  font-family:'JetBrains Mono',monospace;
+  font-size:.62rem;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;transition:.2s;
+}
+
+.btn-teal:hover{background:rgba(110,207,181,.16);}
+
+.receipt-out{
+  background:var(--s1);
+  border:1px solid rgba(110,207,181,.2);
+  border-radius:var(--r);
+  padding:16px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.68rem;color:var(--teal);
+  white-space:pre-wrap;word-wrap:break-word;
+  display:none;margin-top:10px;
+  animation:fadeUp .3s ease;
+  line-height:1.7;
+}
+
+.modal-backdrop{
+  position:fixed;inset:0;
+  background:rgba(5,5,10,.88);
+  backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:500;padding:20px;
+  animation:backdropIn .25s ease;
+}
+
+@keyframes backdropIn{from{opacity:0}to{opacity:1}}
+
+body.light .modal-backdrop{background:rgba(140,130,110,.6);}
+
+.modal-box{
+  width:100%;max-width:480px;
+  max-height:88vh;overflow-y:auto;
+  background:var(--s2);
+  border:1px solid var(--br2);
+  border-radius:24px;
+  padding:32px 28px;
+  position:relative;
+  animation:fadeUp .4s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 30px 70px rgba(0,0,0,.5);
+}
+
+.modal-close{
+  position:absolute;top:16px;right:16px;
+  width:32px;height:32px;border-radius:50%;
+  border:1px solid var(--br2);
+  background:var(--s3);color:var(--tx-sub);
+  font-size:1.1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+
+.modal-close:hover{background:rgba(232,112,112,.15);color:var(--rose);transform:rotate(90deg);}
+
+.m-eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.56rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--teal);margin-bottom:7px;
+}
+
+.m-title{
+  font-family:'Playfair Display',serif;
+  font-size:1.25rem;font-weight:700;
+  color:var(--tx);margin-bottom:20px;
+  line-height:1.25;padding-right:32px;
+}
+
+.m-divider{height:1px;background:linear-gradient(90deg,var(--gold),transparent);opacity:.25;margin:16px 0;}
+
+.story-blk{
+  background:rgba(232,178,74,.05);
+  border:1px solid rgba(232,178,74,.15);
+  border-radius:var(--r);
+  padding:16px;margin-bottom:18px;
+}
+
+.story-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.54rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--gold);margin-bottom:8px;
+}
+
+.story-body{
+  font-size:.86rem;font-style:italic;
+  color:var(--tx-sub);line-height:1.68;
+}
+
+.steps-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.54rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--tx-fade);margin-bottom:12px;
+}
+
+.steps-wrap{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+
+.step-row{
+  display:flex;align-items:flex-start;gap:12px;
+  font-size:.84rem;font-weight:500;color:var(--tx);
+  opacity:0;transform:translateX(-8px);
+  animation:slideIn .35s ease forwards;
+}
+
+.step-row:nth-child(1){animation-delay:.08s;}
+.step-row:nth-child(2){animation-delay:.16s;}
+.step-row:nth-child(3){animation-delay:.24s;}
+
+.step-num{
+  width:24px;height:24px;border-radius:50%;
+  background:rgba(232,178,74,.1);
+  border:1.5px solid rgba(232,178,74,.3);
+  color:var(--gold);
+  font-size:.66rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  font-family:'JetBrains Mono',monospace;
+}
+
+.time-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(110,207,181,.08);
+  border:1px solid rgba(110,207,181,.2);
+  border-radius:100px;padding:7px 16px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.66rem;letter-spacing:1px;color:var(--teal);
+}
+
+.stats-row{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:12px;margin-bottom:26px;
+}
+
+.stat-card{
+  background:var(--s1);
+  border:1px solid var(--br);
+  border-radius:18px;
+  padding:18px 12px;text-align:center;
+}
+
+.stat-val{
+  font-family:'Playfair Display',serif;
+  font-size:1.9rem;font-weight:900;
+  color:var(--tx);letter-spacing:-1.5px;
+  line-height:1;
+}
+
+.stat-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.52rem;letter-spacing:2px;text-transform:uppercase;
+  color:var(--tx-fade);margin-top:5px;
+}
+
+.streak-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  background:rgba(232,112,112,.1);
+  border:1px solid rgba(232,112,112,.28);
+  color:var(--rose);
+  font-family:'JetBrains Mono',monospace;
+  font-size:.64rem;letter-spacing:2px;text-transform:uppercase;
+  padding:8px 14px;border-radius:100px;
+  margin-bottom:26px;
+}
+
+.chart-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--tx-fade);margin-bottom:14px;
+}
+
+.bar-chart{
+  display:flex;align-items:flex-end;
+  height:90px;gap:8px;
+  border-bottom:1px solid var(--br);
+  margin-bottom:26px;
+}
+
+.bar-col{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-end;height:100%;
+}
+
+.bar-fill{
+  width:100%;border-radius:5px 5px 0 0;
+  transition:height .65s ease;height:0;
+}
+
+.bar-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.5rem;color:var(--tx-fade);
+  margin-top:6px;text-align:center;
+}
+
+.trend-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:100px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;letter-spacing:1.5px;text-transform:uppercase;
+  margin-bottom:22px;
+}
+
+.trend-up{background:rgba(110,207,181,.1);border:1px solid rgba(110,207,181,.25);color:var(--teal);}
+.trend-down{background:rgba(232,112,112,.1);border:1px solid rgba(232,112,112,.25);color:var(--rose);}
+.trend-stable{background:rgba(148,163,184,.1);border:1px solid rgba(148,163,184,.25);color:#94a3b8;}
+
+.log-list{display:flex;flex-direction:column;gap:10px;}
+
+.log-item{
+  display:flex;align-items:center;gap:14px;
+  background:var(--s1);border:1px solid var(--br);
+  border-radius:16px;padding:14px 18px;
+  animation:fadeUp .35s ease;
+}
+
+.log-emoji{font-size:1.4rem;flex-shrink:0;}
+
+.log-body{flex:1;min-width:0;}
+
+.log-meta{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.56rem;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--tx-fade);margin-bottom:3px;
+}
+
+.log-info{font-size:.84rem;font-weight:500;color:var(--tx);}
+
+.log-badge{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;letter-spacing:1px;
+  padding:4px 10px;border-radius:8px;
+  background:var(--s3);color:var(--tx-sub);
+  flex-shrink:0;
+}
+
+.no-hist{
+  text-align:center;padding:52px 24px;
+  color:var(--tx-fade);
+  font-family:'JetBrains Mono',monospace;
+  font-size:.64rem;letter-spacing:2px;text-transform:uppercase;
+  border:1.5px dashed var(--br2);border-radius:18px;
+}
+
+.btn-danger{
+  background:transparent;
+  border:1.5px solid rgba(232,112,112,.22);
+  color:var(--rose);
+  padding:11px;border-radius:var(--r);
+  font-family:'JetBrains Mono',monospace;
+  font-size:.6rem;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;width:100%;margin-top:22px;transition:.22s;
+}
+
+.btn-danger:hover{background:rgba(232,112,112,.07);}
+
+.breathe-hdr{text-align:center;margin-bottom:24px;}
+
+.breathe-ring-wrap{display:flex;justify-content:center;margin:32px 0;}
+
+.breathe-ring{
+  width:170px;height:170px;border-radius:50%;
+  background:radial-gradient(circle at 38% 35%, #9d6ff5, #3b1475);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;
+  font-size:.88rem;font-weight:700;color:#fff;
+  transition:transform 4s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 0 48px rgba(157,111,245,.3),0 0 90px rgba(157,111,245,.1);
+}
+
+.breathe-instr{
+  text-align:center;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.7rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--tx-sub);margin-bottom:26px;min-height:22px;
+}
+
+.breathe-btns{display:flex;gap:10px;justify-content:center;margin-bottom:28px;}
+
+.br-start{
+  padding:13px 34px;
+  background:var(--gold);border:none;
+  border-radius:16px;color:#0a0a0d;
+  font-family:'Playfair Display',serif;
+  font-weight:700;font-size:.92rem;
+  cursor:pointer;transition:all .2s;
+  box-shadow:0 4px 18px rgba(232,178,74,.3);
+}
+
+.br-start:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(232,178,74,.4);}
+
+.br-reset{
+  padding:13px 22px;
+  background:transparent;
+  border:1.5px solid var(--br2);
+  border-radius:16px;color:var(--tx-sub);
+  font-family:'JetBrains Mono',monospace;
+  font-size:.62rem;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;
+}
+
+.br-reset:hover{border-color:var(--gold);color:var(--gold);}
+
+.technique-card{
+  background:var(--s1);border:1px solid var(--br);
+  border-radius:18px;padding:22px 24px;
+}
+
+.technique-title{
+  font-family:'Playfair Display',serif;
+  font-weight:700;font-size:1rem;
+  color:var(--tx);margin-bottom:8px;
+}
+
+.technique-desc{font-size:.82rem;color:var(--tx-sub);line-height:1.65;font-weight:300;}
+
+.phase-row{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:10px;margin-top:18px;
+}
+
+.phase-box{
+  background:var(--s2);border:1px solid var(--br);
+  border-radius:12px;padding:12px 10px;text-align:center;
+}
+
+.phase-num{
+  font-family:'Playfair Display',serif;
+  font-size:1.3rem;font-weight:900;
+  color:var(--gold);letter-spacing:-1px;
+  line-height:1;margin-bottom:3px;
+}
+
+.phase-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.52rem;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--tx-fade);
+}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--br2);border-radius:4px;}
+
+.shake{animation:shk .5s ease;}
+@keyframes shk{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+
+.section-divider{
+  height:1px;
+  background:linear-gradient(90deg,var(--gold),transparent);
+  opacity:.2;
+  margin:24px 0;
+}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="sp-tag">By Team HackOPS</div>
+  <h1 class="sp-title">Mood<em>-O-</em>Meter</h1>
+  <p class="sp-sub">Enterprise Wellness System v3</p>
+  <div class="sp-dots"><span></span><span></span><span></span></div>
+</div>
+
+<div id="app">
+  <header class="topbar">
+    <div class="logo-mark">Mood<span>·</span>O<span>·</span>Meter</div>
+    <div class="topbar-right">
+      <div class="dev-badge" id="devBadge">Detecting...</div>
+      <button class="theme-btn" id="themeBtn">☀️</button>
+    </div>
+  </header>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="log">📋 Check In</button>
+    <button class="tab-btn" data-tab="history">📊 History</button>
+    <button class="tab-btn" data-tab="breathe">🌬 Breathe</button>
+  </nav>
+
+  <section id="tab-log" class="tab-panel active">
+    <div id="formSection">
+      <p class="eyebrow">Daily Check-In</p>
+      <h2 class="section-title" id="greeting">How are you doing?</h2>
+      <p class="section-sub">Fill in your details and get a personalised wellness report.</p>
+
+      <div class="field">
+        <label class="field-lbl" for="nameInput">Your Name</label>
+        <input class="txt-input" id="nameInput" type="text" placeholder="What do we call you?" autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="field-lbl" for="ageInput">Age</label>
+        <input class="txt-input" id="ageInput" type="number" placeholder="Your age" min="0" max="120">
+      </div>
+      <div class="field">
+        <label class="field-lbl">Gender</label>
+        <div class="pill-row" id="genderPicker">
+          <div class="pill" data-val="Male">Male</div>
+          <div class="pill" data-val="Female">Female</div>
+          <div class="pill" data-val="Other">Other</div>
+        </div>
+        <input type="hidden" id="genderInput" value="">
+      </div>
+      <div class="field">
+        <label class="field-lbl">Current Mood</label>
+        <div class="mood-grid" id="moodPicker">
+          <div class="mood-card sel" data-mood="Happy">
+            <span class="m-emoji">😄</span>
+            <span class="m-lbl">Happy</span>
+          </div>
+          <div class="mood-card" data-mood="Neutral">
+            <span class="m-emoji">😐</span>
+            <span class="m-lbl">Neutral</span>
+          </div>
+          <div class="mood-card" data-mood="Stressed">
+            <span class="m-emoji">😰</span>
+            <span class="m-lbl">Stressed</span>
+          </div>
+          <div class="mood-card" data-mood="Sad">
+            <span class="m-emoji">😢</span>
+            <span class="m-lbl">Sad</span>
+          </div>
+          <div class="mood-card" data-mood="Angry">
+            <span class="m-emoji">😤</span>
+            <span class="m-lbl">Angry</span>
+          </div>
+        </div>
+        <input type="hidden" id="moodInput" value="Happy">
+      </div>
+      <div class="field">
+        <label class="field-lbl">Energy Level</label>
+        <div class="energy-row" id="energyPicker">
+          <div class="energy-card" data-energy="Low">
+            <span class="e-icon">🔋</span>
+            <span class="e-lbl">Low</span>
+          </div>
+          <div class="energy-card sel" data-energy="Medium">
+            <span class="e-icon">⚡</span>
+            <span class="e-lbl">Medium</span>
+          </div>
+          <div class="energy-card" data-energy="High">
+            <span class="e-icon">🚀</span>
+            <span class="e-lbl">High</span>
+          </div>
+        </div>
+        <input type="hidden" id="energyInput" value="Medium">
+      </div>
+      <div class="dyn-field" id="periodSection">
+        <label class="field-lbl">Menstrual Cycle</label>
+        <div class="sel-wrap">
+          <select class="txt-input" id="periodInput">
+            <option value="No">No, not currently</option>
+            <option value="Yes">Yes, currently on cycle</option>
+          </select>
+        </div>
+      </div>
+      <div class="dyn-field" id="reasonSection">
+        <label class="field-lbl">What's behind it?</label>
+        <div class="sel-wrap">
+          <select class="txt-input" id="reasonInput">
+            <option value="">Select a reason…</option>
+            <option value="School">Academic load</option>
+            <option value="Social">Social dynamics</option>
+            <option value="Money">Financial stress</option>
+            <option value="Tired">Physical fatigue</option>
+            <option value="Unknown">Not sure</option>
+          </select>
+        </div>
+      </div>
+      <button class="submit-btn" id="analyzeBtn">Analyze My Mood →</button>
+    </div>
+    <div id="resultSection" style="display:none;"></div>
+  </section>
+
+  <section id="tab-history" class="tab-panel">
+    <p class="eyebrow">Your Journey</p>
+    <h2 class="section-title">History</h2>
+    <p class="section-sub">A record of your recent check-ins and mood patterns.</p>
+    <div id="historyContent"></div>
+  </section>
+
+  <section id="tab-breathe" class="tab-panel">
+    <div class="breathe-hdr">
+      <p class="eyebrow">Relaxation Tool</p>
+      <h2 class="section-title">4-7-8 Breathing</h2>
+      <p class="section-sub">Activates your parasympathetic nervous system and reduces cortisol fast.</p>
+    </div>
+    <div class="breathe-ring-wrap">
+      <div class="breathe-ring" id="breathCircle">Ready</div>
+    </div>
+    <p class="breathe-instr" id="breathInstr">Press start when you're ready</p>
+    <div class="breathe-btns">
+      <button class="br-start" id="breathStartBtn">Start</button>
+      <button class="br-reset" id="breathResetBtn">Reset</button>
+    </div>
+    <div class="technique-card">
+      <p class="technique-title">How the 4-7-8 technique works</p>
+      <p class="technique-desc">Breathe in for 4 seconds, hold for 7, exhale slowly for 8. The extended exhale activates your vagus nerve, slowing your heart rate and signalling safety to your nervous system. Repeat 3–4 cycles.</p>
+      <div class="phase-row">
+        <div class="phase-box">
+          <div class="phase-num">4s</div>
+          <div class="phase-lbl">Inhale</div>
+        </div>
+        <div class="phase-box">
+          <div class="phase-num">7s</div>
+          <div class="phase-lbl">Hold</div>
+        </div>
+        <div class="phase-box">
+          <div class="phase-num">8s</div>
+          <div class="phase-lbl">Exhale</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const tipsData = {
+  child_good: {
+    title: (name) => `Level Up, ${name}! 🚀`,
+    tips: {
+      High: [
+        { label: "Run around in the park", story: "Priya burst through her front door and raced to the park, letting the wind pull her worries clean away. By the time she circled the field twice, her cheeks hurt from smiling.", steps: ["Find a nearby park or open space", "Set a fun goal — count lampposts, race to a tree", "Finish with 2 minutes of big jumps or cartwheels"], time: "20 Mins" },
+        { label: "Build a mega blanket fort", story: "Rohan emptied the linen cupboard and engineered the most spectacular fort his living room had ever seen. He spent three happy hours inside it reading comics with a torch.", steps: ["Gather blankets, pillows and chairs", "Drape blankets over the furniture to form walls", "Decorate with fairy lights and crawl inside"], time: "30 Mins" },
+        { label: "Tag your friends in a game", story: "A single text from Maya summoned six friends to the street, and a game of tag erupted that lasted until the streetlights switched on. Nobody wanted it to end.", steps: ["Message 2–4 friends to meet up", "Agree on a simple game — tag, hide and seek, or kick-the-can", "Play until everyone needs a snack break"], time: "45 Mins" }
+      ],
+      Medium: [
+        { label: "Try drawing or sketching", story: "Leon sat with a blank page and just started doodling a dragon, and before he knew it an entire fantasy landscape had appeared. He pinned it on his wall that evening.", steps: ["Grab a pencil and any piece of paper", "Draw something from memory — animal, city, or made-up creature", "Add shading or colour to bring it to life"], time: "25 Mins" },
+        { label: "Play with your favourite toys", story: "Zara pulled her LEGO set from under the bed and decided today she'd build a space station. Two hours dissolved like magic before she even noticed.", steps: ["Pick out your most-loved toys or games", "Create a new story or challenge for them", "Photograph your creation before packing away"], time: "40 Mins" },
+        { label: "Help out around the house", story: "Tom surprised his mum by tidying the kitchen without being asked, and the proud look on her face filled him with more warmth than any reward could.", steps: ["Ask if there's a small task that needs doing", "Put on music and tackle it with energy", "Reward yourself with a snack once it's done"], time: "15 Mins" }
+      ],
+      Low: [
+        { label: "Watch your favourite show", story: "Amara curled under a weighted blanket with her favourite series and let herself be completely transported for a whole hour. She woke up from a nap feeling brand new.", steps: ["Choose a show that makes you laugh or feel cosy", "Make a small snack to enjoy alongside it", "Keep a blanket nearby and let yourself fully relax"], time: "60 Mins" },
+        { label: "Pick up a good book", story: "Eli had ignored his bookshelf for months until a rainy afternoon pulled him back in — one chapter became twelve, and he forgot to feel tired at all.", steps: ["Browse your shelf or ask someone to recommend a book", "Find a quiet comfortable spot with good light", "Read for at least 20 minutes without any distractions"], time: "30 Mins" },
+        { label: "Take a proper nap", story: "Sofia set a 25-minute timer, closed her eyes, and woke up feeling like a different person — sharper, calmer, and ready for whatever came next.", steps: ["Set a timer for 20–30 minutes", "Lie down in a dark, quiet room", "Keep a glass of water nearby for when you wake up"], time: "30 Mins" }
+      ]
+    }
+  },
+  child_bad: {
+    title: (name) => `You've Got This, ${name} 🛡️`,
+    tips: {
+      High: [
+        { label: "Jump around and burn it off", story: "Kieran was so frustrated he felt like he might explode — so he went outside and jumped on the trampoline for ten straight minutes until all that energy had nowhere left to go.", steps: ["Find space: garden, bedroom floor, or hallway", "Jump, spin, or dance for at least 5 minutes", "Take deep breaths while jumping — in through the nose, out through the mouth"], time: "10 Mins" },
+        { label: "Sing out loud at the top of your voice", story: "Mia locked her bedroom door, turned her playlist up loud, and sang every single word until her chest felt lighter and her cheeks ached from grinning.", steps: ["Put on your absolute favourite song", "Sing as loudly as you like — nobody is judging", "Repeat for 2–3 songs until you feel the tension lift"], time: "10 Mins" },
+        { label: "Do the silliest dance you know", story: "After a rough day, Jake invented a dance so ridiculous that his little sister started copying him, and they both ended up collapsed in laughter on the carpet.", steps: ["Put on an upbeat track", "Give each move a funny name as you do it", "Film it if you want a mood-boost you can watch later"], time: "10 Mins" }
+      ],
+      Medium: [
+        { label: "Ask someone for a hug", story: "Lily hadn't said a word to her mum about her bad day, but one hug said everything — and the tight squeeze back told her she wasn't carrying it alone.", steps: ["Find a parent, sibling, or trusted person", "Say 'I'm having a tough day — can I have a hug?'", "Stay in the hug a little longer than feels normal"], time: "5 Mins" },
+        { label: "Play a board game with family", story: "Caden dragged out the Monopoly box dreading it, but two hours of playful arguments and laughter with his family had completely reset his mood.", steps: ["Choose a short board or card game (Uno works great)", "Invite at least one family member to join", "Focus on fun, not winning — laugh at the bad luck"], time: "45 Mins" },
+        { label: "Grab a warm drink", story: "When nothing seemed to be going right, Nadia made herself a cup of hot chocolate, cupped it in both hands, and just let the warmth travel slowly up her arms.", steps: ["Make hot chocolate, warm milk, or herbal tea", "Sit somewhere comfortable — no screen in hand", "Take five long, slow sips and breathe between each one"], time: "10 Mins" }
+      ],
+      Low: [
+        { label: "Make a cosy blanket nest and rest", story: "When everything felt too heavy, Theo built a nest of pillows and blankets in the corner of his room and stayed there quietly for an hour — and it was exactly enough.", steps: ["Pile your softest blankets in a cosy spot", "Dim the lights or pull the curtains", "Lie there without any pressure to do anything"], time: "30 Mins" },
+        { label: "Listen to a calming story", story: "Luna put on an audiobook at bedtime and let a stranger's voice carry her gently away from whatever had been pressing down on her chest all day.", steps: ["Search for a free children's audiobook or podcast", "Put in earphones and lie down comfortably", "Close your eyes and let the story carry you"], time: "20 Mins" },
+        { label: "Rest and let your body reset", story: "Nobody ever got better at anything by pushing through a wall of exhaustion — Leo learned that lesson when one afternoon of honest rest erased two days of bad mood.", steps: ["Turn off all screens", "Lie in a comfortable, dark room", "Focus only on your breathing — count 4 counts in, 4 counts out"], time: "25 Mins" }
+      ]
+    }
+  },
+  period_good: {
+    title: () => "Flow & Glow ✨",
+    tips: {
+      High: [
+        { label: "Keep to light cardio today", story: "Aisha swapped her usual intense run for a 20-minute walk and found that the gentle pace felt surprisingly satisfying — body moving, mind calm, cycle respected.", steps: ["Choose low-impact movement: walking, cycling, or yoga", "Keep intensity at a 6/10 — comfortable conversation pace", "Hydrate well before, during, and after"], time: "25 Mins" },
+        { label: "Eat iron-rich foods today", story: "Since discovering that fatigue during her cycle was often iron-related, Priya made a point of having spinach with lunch — and the difference in energy by evening was undeniable.", steps: ["Add spinach, lentils, or beans to your next meal", "Pair with vitamin C (orange juice) to boost iron absorption", "Avoid tea/coffee right after — they reduce iron uptake"], time: "15 Mins" },
+        { label: "Channel energy into something creative", story: "Kavya had unexpectedly high energy mid-cycle and channelled it into a painting she'd been avoiding for weeks — it turned out to be the best piece she'd ever made.", steps: ["Pick a creative outlet: art, writing, cooking, or music", "Set a 25-minute focused session with no interruptions", "Step back at the end and appreciate what you made"], time: "30 Mins" }
+      ],
+      Medium: [
+        { label: "Take a gentle walk in nature", story: "Sara laced up her trainers and walked slowly through the park near her house, noticing every bird and leaf — it was the first time in days she'd felt genuinely peaceful.", steps: ["Find a green space: park, garden, or tree-lined street", "Walk without headphones for the first 10 minutes", "Notice 5 things you can see, hear, and feel"], time: "20 Mins" },
+        { label: "Stretch lightly for 10 minutes", story: "Meera had ignored the kinks in her back all morning until a short stretching session sorted them out — she moved through the rest of her day like a different person.", steps: ["Start with neck rolls and shoulder circles", "Move to cat-cow stretches on the floor", "Finish with a gentle forward fold and hold for 30 seconds"], time: "10 Mins" },
+        { label: "Stay well hydrated all day", story: "Deepa realised that most of her cycle discomfort was tied to forgetting to drink water — a simple habit shift that changed everything about how she felt by week two.", steps: ["Fill a 1-litre bottle first thing in the morning", "Add sliced lemon or mint to make it more appealing", "Aim to finish it before dinner and refill for evening"], time: "All Day" }
+      ],
+      Low: [
+        { label: "Relax with a good film", story: "On the lowest-energy days, Jiah allowed herself to do absolutely nothing — a cosy film, a mug of tea, and zero guilt — and woke up the next morning genuinely restored.", steps: ["Pick something light, funny, or comforting — no thrillers", "Make a warm drink and gather your blanket", "Switch your phone to silent and commit fully to resting"], time: "90 Mins" },
+        { label: "Write in your journal", story: "Fatima had started journalling during her cycle as a way to track patterns, and discovered it also pulled all the heavy thoughts out of her head and onto a page where they became manageable.", steps: ["Open a notebook to a blank page", "Write whatever comes out — no editing, no judgement", "Finish with one sentence about something you're grateful for"], time: "15 Mins" },
+        { label: "Sleep early tonight", story: "Against all her instincts, Riya went to bed at 9:30pm and woke up the next morning feeling genuinely human — proving that no productivity tool beats basic rest.", steps: ["Dim all lights 45 minutes before bed", "Put your phone on charge across the room", "Read a calming page or listen to soft music until you drift off"], time: "8 Hours" }
+      ]
+    }
+  },
+  period_bad: {
+    title: () => "Rest & Restore 💖",
+    tips: {
+      High: [
+        { label: "Walk off the tension", story: "Even when she felt snappy and unsettled, Ria found that 15 minutes of walking outside reduced the irritability more reliably than anything else she'd tried.", steps: ["Step outside, no destination needed", "Walk at your own pace — faster if you're frustrated", "Come home via a quiet route and breathe slowly as you go"], time: "20 Mins" },
+        { label: "Tidy one small space in your room", story: "Zoya hated tidying but cleaning her desk when she was overwhelmed gave her back a sense of control — a small, contained win that shifted her entire headspace.", steps: ["Pick a single surface: desk, bedside table, or shelf", "Spend 10 minutes removing everything that doesn't belong", "Wipe it clean and set it up the way you like it"], time: "10 Mins" },
+        { label: "Skip caffeine and try herbal tea", story: "Nisha switched to chamomile tea during her worst cycle days after noticing that coffee made her cramps sharper — the swap was the simplest self-care discovery she'd ever made.", steps: ["Put the coffee down for today only", "Brew chamomile, peppermint, or raspberry leaf tea", "Hold the warm mug in both hands and breathe the steam in"], time: "10 Mins" }
+      ],
+      Medium: [
+        { label: "Try a warm water bottle on cramps", story: "When the cramps hit hard during a study session, Anika pressed a warm water bottle against her lower back and felt the tension unravel in under three minutes.", steps: ["Fill a hot water bottle — not scalding, comfortably warm", "Place it against your lower abdomen or lower back", "Lie still for at least 10 minutes and breathe slowly"], time: "15 Mins" },
+        { label: "Herbal tea for cycle comfort", story: "Rhea's mum had told her about chamomile for years, and when she finally tried it on a bad day, she was annoyed she'd waited so long to listen.", steps: ["Boil water and steep chamomile or ginger tea for 4 minutes", "Add honey if needed and let it cool to a sipping temperature", "Drink slowly — this isn't a racing exercise, it's a ritual"], time: "10 Mins" },
+        { label: "Put on something calming", story: "A low-fi playlist was all it took for Sana to shift from on-edge to almost serene — two hours passed while she lay on her bed doing absolutely nothing except breathing.", steps: ["Search 'lo-fi chill' or 'calming piano' on any streaming platform", "Put on headphones and lie flat on your back", "Let each track wash over you without trying to think about anything"], time: "30 Mins" }
+      ],
+      Low: [
+        { label: "Sleep as much as you need to", story: "Layla stopped setting an alarm on the worst day of her cycle and woke up naturally three hours later — the guilt lasted five seconds, but the restored energy lasted all day.", steps: ["Tell someone you're resting so you're not disturbed", "Close the curtains and make the room cool and dark", "Don't set an alarm — let your body decide when it's done"], time: "Rest As Needed" },
+        { label: "Dim the lights and just be still", story: "On the hardest evenings, Pooja found that sitting quietly with the lights low was more restorative than any app or remedy — sometimes the answer is simply permission to stop.", steps: ["Dim or turn off overhead lights; use a small lamp if needed", "Sit or lie in your most comfortable position", "Stay there for at least 20 minutes with no task to complete"], time: "20 Mins" },
+        { label: "Comfort food is allowed today", story: "When Mira stopped feeling guilty about eating warm soup and toast during her cycle, she realised she'd been making herself feel worse for no reason at all.", steps: ["Prepare something warm and nourishing — soup, toast, or porridge", "Eat slowly without a screen in front of you", "Appreciate the warmth and the fact that you're taking care of yourself"], time: "20 Mins" }
+      ]
+    }
+  },
+  teen_good: {
+    title: (name) => `All Systems Go, ${name} ✨`,
+    tips: {
+      High: [
+        { label: "Start the project you've been delaying", story: "Arjun had been putting off the side project for three months until a single day of high energy made him sit down and power through the first half in one sitting.", steps: ["Write down the single first step of your delayed project", "Set a 45-minute timer and start immediately — no prep, just start", "Stop at the timer and note exactly where you got to for next time"], time: "45 Mins" },
+        { label: "Hit the gym or go for a run", story: "Varun channelled a rare burst of genuine motivation into a run that turned into the best session he'd had all month — high energy days are a gift, and he used it.", steps: ["Don't overthink it — get changed and leave immediately", "Warm up for 5 minutes, then work at 75–85% of your max effort", "Cool down with a 5-minute walk and stretching session"], time: "40 Mins" },
+        { label: "Plan a social event with people you like", story: "Divya sent one message and by evening had a spontaneous dinner organised — it turned into a night that people in her friend group still talked about a year later.", steps: ["Message 3–5 people with a specific idea: café, walk, or movie", "Sort a date within the next 7 days to keep the momentum", "Sort out details on a quick group chat so nobody has to chase anyone"], time: "Evening" }
+      ],
+      Medium: [
+        { label: "Call a friend you haven't spoken to in a while", story: "Neil had thought about messaging his old friend for weeks, and finally called instead — the 40-minute conversation left him genuinely energised and reminded him why connection matters.", steps: ["Think of one person you've been meaning to catch up with", "Call rather than message — richer, warmer, and faster than you expect", "Have no agenda: just say 'I was thinking about you — how are you?'"], time: "30 Mins" },
+        { label: "Cook something new and enjoyable", story: "Siddharth found a recipe online for shakshuka, bought the ingredients on the way home, and produced something so good he photographed it before eating it.", steps: ["Find one recipe with 6 or fewer ingredients", "Go to the shops or check if you have what you need", "Cook it fully from scratch — no shortcuts today"], time: "45 Mins" },
+        { label: "Pick up a skill you've wanted to learn", story: "Tara spent an afternoon with YouTube tutorials on basic guitar chords and played a full song — badly — by the end of the day. She was hooked.", steps: ["Choose one skill you've been curious about for at least a month", "Watch one beginner tutorial end to end without skipping", "Practise the first lesson for 20 minutes before moving on"], time: "40 Mins" }
+      ],
+      Low: [
+        { label: "Write in a journal — reflect and unwind", story: "Rahul started journalling because a friend dared him to for a week, and he was so surprised by how it clarified his thinking that he never actually stopped.", steps: ["Open a blank notebook or new notes document", "Write for 10 minutes without pausing or editing", "End with the line: 'One thing I want to do tomorrow is...'"], time: "15 Mins" },
+        { label: "Listen to a podcast that interests you", story: "Noor put on a science podcast while lying on her floor and fell into a rabbit hole that lasted three episodes — she emerged knowing more and feeling inexplicably calmer.", steps: ["Search for a topic you're curious about followed by 'podcast'", "Download an episode and put it on with eyes closed", "Keep a notepad nearby for any idea that surfaces"], time: "30 Mins" },
+        { label: "Watch a documentary that makes you think", story: "Rohan turned on a documentary about space as background noise and ended up sitting forward, completely absorbed, researching the subject afterwards at midnight.", steps: ["Browse streaming platforms under 'documentary'", "Pick something outside your usual genre", "Watch without your phone — let yourself be fully absorbed"], time: "60 Mins" }
+      ]
+    }
+  },
+  teen_bad_school: {
+    title: (name) => `Recovery Mode, ${name} ⚠️`,
+    tips: {
+      High: [
+        { label: "Tackle the hardest task first", story: "Every morning Shreya sat down and did her most dreaded task before anything else — and every morning the rest of the day felt comparatively easy after that one difficult first step.", steps: ["Write down your 3 most urgent tasks right now", "Pick the hardest one — the one you've been avoiding", "Set a 25-minute timer and work on only that task until it rings"], time: "25 Mins" },
+        { label: "Try a group study session", story: "Aditya had always studied alone until his friends dragged him into a library session — the accountability alone doubled his output within the first hour.", steps: ["Message 1–2 focused friends about a study session today or tomorrow", "Agree on a 90-minute block with 10-minute breaks", "Each person states their goal at the start and reports back at the end"], time: "90 Mins" },
+        { label: "Flashcard blitz for 20 minutes", story: "Tanvi made 20 flashcards at the start of exam season and reviewed them every evening for a month — the small daily habit compounded into an exam result she hadn't expected.", steps: ["Write questions on one side, answers on the other", "Quiz yourself through the whole deck once quickly", "Separate any wrong answers for a second round"], time: "20 Mins" }
+      ],
+      Medium: [
+        { label: "Organise your desk — clarity helps", story: "Sameer spent 15 minutes clearing his desk before a revision session and found that the cleared physical space immediately cleared his mental space too — small tidy, big impact.", steps: ["Clear everything off your desk completely", "Put only what you need for today's task back on it", "Make sure your lighting is good and your seat is comfortable"], time: "15 Mins" },
+        { label: "Watch educational videos instead of reading", story: "When the textbook felt impossible, Ishaan switched to a YouTube explainer on the same topic — the same information clicked in under 10 minutes where an hour of reading had failed.", steps: ["Search for your topic on YouTube or Khan Academy", "Watch at 1.25x speed and pause to take brief notes", "Test yourself by writing a 3-sentence summary from memory after"], time: "20 Mins" },
+        { label: "Focus on easy wins first", story: "Priya had always been told to do the hard things first, but on stressed days she flipped it — three quick tasks done built enough momentum to take on the difficult one.", steps: ["List everything you need to do", "Complete the 2–3 easiest items immediately", "Use the momentum and confidence to move to harder tasks"], time: "30 Mins" }
+      ],
+      Low: [
+        { label: "Put on LoFi and let your mind rest", story: "Karan discovered lo-fi music during finals season and it became his anchor — the consistent rhythm slowed his anxious thoughts just enough for him to function.", steps: ["Search 'lo-fi study beats' and press play", "Set a 20-minute timer and sit quietly — no pressure to work", "After 20 minutes, open your notes and see what comes naturally"], time: "20 Mins" },
+        { label: "Sleep — you need it more than revision", story: "The night before his exam Aryan stayed up until 2am and performed terribly — the next time he chose sleep over a late session and scored significantly better.", steps: ["Stop studying 1 hour before your intended sleep time", "Do a brief review of key headings — nothing intensive", "Get 7–9 hours and trust what you already know"], time: "8 Hours" },
+        { label: "Eat something nourishing before studying", story: "Meha had been studying on an empty stomach for days before realising her inability to concentrate was at least partly hunger — a warm meal changed everything within 30 minutes.", steps: ["Eat a proper meal — not just a snack", "Include protein: eggs, lentils, nuts, or yoghurt", "Drink a full glass of water before sitting at your desk"], time: "30 Mins" }
+      ]
+    }
+  },
+  teen_bad_social: {
+    title: (name) => `Recovery Mode, ${name} ⚠️`,
+    tips: {
+      High: [
+        { label: "Go for a run and clear your head", story: "After a brutal social fallout, Vikram laced up and ran further than he'd planned — by the time he got home the anger had converted into something that felt almost like peace.", steps: ["Step outside, no destination needed", "Pick a route that takes you away from the situation physically", "Focus only on your breathing and surroundings while you run"], time: "30 Mins" },
+        { label: "Hit the gym — physical effort helps", story: "Ananya channelled every bit of her frustration into a workout she described as 'therapeutic destruction' — she came home calm in a way no conversation had managed to achieve.", steps: ["Warm up with 5 minutes of light cardio", "Lift weights or do high-intensity bodyweight work", "Track reps — the counting gives anxious minds something concrete to focus on"], time: "45 Mins" },
+        { label: "Clean and reorganise your room", story: "When his friendship group imploded, Rajesh spent a Sunday reorganising his entire room — it didn't fix anything socially, but it gave him control in a space where he had it.", steps: ["Start with the floor, then the desk, then the shelves", "Throw away or donate anything you no longer need", "Rearrange one element — furniture or decorations — to make the space feel new"], time: "60 Mins" }
+      ],
+      Medium: [
+        { label: "Write down exactly how you feel", story: "Sneha had been carrying the weight of a difficult friendship for weeks until she wrote it all out — seeing it clearly on the page made the problem feel smaller and more solvable.", steps: ["Start with: 'Right now I feel...' and write without stopping", "Then write: 'What I actually want is...'", "Read it back once, then close the notebook — you don't have to solve it today"], time: "15 Mins" },
+        { label: "Take a slow walk somewhere quiet", story: "Pooja had learned that her best thinking happened while walking alone, not staring at a ceiling — the gentle movement loosened thoughts that had been stuck for days.", steps: ["Choose a quiet route — avoid crowded or busy areas", "Leave your phone in your pocket — no scrolling", "Walk for at least 15 minutes before letting yourself think about the issue"], time: "20 Mins" },
+        { label: "Meet one trusted person for coffee", story: "Riya almost cancelled the coffee but went anyway, and within 20 minutes of talking to her closest friend she had clarity she'd been unable to find on her own all week.", steps: ["Text one person you genuinely trust — not involved in the situation", "Meet somewhere neutral: a café or a park bench", "Let yourself talk — you don't need advice, just to be heard"], time: "60 Mins" }
+      ],
+      Low: [
+        { label: "Mute notifications for a while", story: "Every buzz on Dev's phone was a reminder of the situation and a source of fresh anxiety — when he switched to Do Not Disturb for three hours, his nervous system finally unclenched.", steps: ["Turn on Do Not Disturb mode right now", "Put the phone face-down across the room", "Give yourself a specific time — e.g., 3 hours — before checking it again"], time: "3 Hours" },
+        { label: "Listen to music that matches your mood", story: "Neel had been told to listen to happy music when sad, but he found it worse — instead he put on music that understood him first, and then the shift happened naturally.", steps: ["Start with music that reflects how you currently feel", "After 10 minutes, shift to something slightly more calm", "Let the playlist gradually walk your mood in a better direction"], time: "30 Mins" },
+        { label: "Sleep it off — things look different tomorrow", story: "Aditi had sent a message she regretted at 11pm, and her mum had told her to sleep before responding — she woke up to find the whole situation had resolved itself overnight.", steps: ["Stop engaging with the situation for tonight", "Follow a wind-down routine: warm drink, dim lights, no screens", "Remind yourself: your brain processes problems during sleep"], time: "8 Hours" }
+      ]
+    }
+  },
+  teen_bad_other: {
+    title: (name) => `Recovery Mode, ${name} ⚠️`,
+    tips: {
+      High: [
+        { label: "Dance to music you love", story: "When Ayesha couldn't name what was wrong, she put on her favourite playlist and danced badly and joyfully in her room until she couldn't remember why she'd felt so flat.", steps: ["Make a playlist of songs that have always made you move", "Dance in your room with the door closed if needed — no audience required", "Keep going for at least 3 full songs"], time: "15 Mins" },
+        { label: "Exercise and release those endorphins", story: "After weeks of low mood, Kabir started doing 20 push-ups and 20 squats every morning and reported that it was the only thing making the days feel manageable.", steps: ["Start with 3 sets of 10 push-ups and 15 squats — no gym needed", "Work up a light sweat — enough to raise your heart rate", "Finish with 3 deep breaths in the cool air and notice how you feel"], time: "20 Mins" },
+        { label: "Fix or build something with your hands", story: "Vikram had a broken lamp in his room for six months until a restless afternoon led him to fix it — and the satisfaction of the thing working again was disproportionately enormous.", steps: ["Find something that needs fixing, assembling, or building", "Gather the tools you need and clear a workspace", "Work slowly and methodically — the process is the point, not the result"], time: "45 Mins" }
+      ],
+      Medium: [
+        { label: "Try the 4-7-8 breathing technique", story: "Rehan's therapist taught him 4-7-8 breathing for moments when his chest tightened with anxiety — three rounds in a quiet room reliably brought his heart rate back to normal.", steps: ["Breathe in for 4 counts through your nose", "Hold for 7 counts without strain", "Exhale slowly for 8 counts through your mouth — repeat 4 times"], time: "5 Mins" },
+        { label: "Take a long, warm shower", story: "When language failed her and nothing felt right, Mira found that a long shower with steam and silence was the most honest reset button her body knew.", steps: ["Set the water to pleasantly warm — not scalding", "Stay for at least 10 full minutes — no rushing", "Focus only on the physical sensations: water, warmth, sound"], time: "15 Mins" },
+        { label: "Watch something that makes you laugh", story: "Sam had been circling the same dark thoughts for days until his flatmate made him watch a comedy special — genuine laughter physically interrupted the pattern for the first time in a week.", steps: ["Search for a comedy special, sitcom episode, or funny YouTube compilation", "Commit to watching without multitasking — phone face-down", "Note what actually made you laugh — humour is diagnostic about what you enjoy"], time: "30 Mins" }
+      ],
+      Low: [
+        { label: "Disconnect from your screens", story: "After two hours of mindlessly scrolling while feeling terrible, Zara put her phone in a drawer, sat in the garden, and felt the background hum of anxiety start to fade.", steps: ["Put your phone, laptop, and tablet out of reach", "Sit or lie somewhere quiet without any device", "Observe your surroundings in silence for at least 20 minutes"], time: "20 Mins" },
+        { label: "Rest in a dark, quiet room", story: "When even small tasks felt impossible, Aarav allowed himself a full afternoon in a darkened room — no guilt, no productivity — and woke from a nap with the weight unexplainably lighter.", steps: ["Close the curtains and dim the lights completely", "Lie flat on your back with no pillow if comfortable", "Stay there with the only task being to breathe slowly"], time: "30 Mins" },
+        { label: "It's okay to cry — let it out", story: "Maya had been holding her feelings back for three weeks to seem fine in front of everyone, and the day she finally let herself cry alone for twenty minutes was the day she started feeling better.", steps: ["Find a private space where you feel safe", "Don't try to stop it — let it come without judgement", "Afterwards, wash your face with cold water and drink a full glass of water"], time: "As Long As Needed" }
+      ]
+    }
+  }
+};
+
+const moodQuotes = {
+  Happy: [
+    { text: "Happiness is not something readymade. It comes from your own actions.", author: "Dalai Lama" },
+    { text: "The purpose of our lives is to be happy.", author: "Dalai Lama" },
+    { text: "Enjoy the little things, for one day you may look back and realise they were the big things.", author: "Robert Brault" }
+  ],
+  Neutral: [
+    { text: "Not every day has to be extraordinary — steady is its own kind of strength.", author: "Anonymous" },
+    { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
+    { text: "Equanimity: the quiet confidence that things will work out.", author: "Anonymous" }
+  ],
+  Stressed: [
+    { text: "You don't have to control your thoughts. You just have to stop letting them control you.", author: "Dan Millman" },
+    { text: "Almost everything will work again if you unplug it for a few minutes — including you.", author: "Anne Lamott" },
+    { text: "Stress is the trash of modern life — we all generate it but if you don't dispose of it properly, it will pile up.", author: "Danzae Pace" }
+  ],
+  Sad: [
+    { text: "Even the darkest night will end and the sun will rise.", author: "Victor Hugo" },
+    { text: "What we call the beginning is often the end. And to make an end is to make a beginning.", author: "T.S. Eliot" },
+    { text: "Tears are words the heart can't express.", author: "Gerard Way" }
+  ],
+  Angry: [
+    { text: "For every minute you are angry you lose sixty seconds of peace.", author: "Ralph Waldo Emerson" },
+    { text: "Speak when you are angry and you will make the best speech you will ever regret.", author: "Ambrose Bierce" },
+    { text: "Anger is an acid that can do more harm to the vessel in which it is stored than to anything on which it is poured.", author: "Mark Twain" }
+  ]
+};
+
+const moodEmoji = {
+  Happy: "😄", Neutral: "😐", Stressed: "😰", Sad: "😢", Angry: "😤"
+};
+
+const BAD_WORDS = ["stupid","idiot","kill","hell","damn","shit"];
+
+let logs = JSON.parse(localStorage.getItem('hackops_v3_logs')) || [];
+let selectedMood = 'Happy';
+let selectedEnergy = 'Medium';
+let selectedGender = '';
+let isDark = true;
+
+const getStreak = () => {
+  if (logs.length === 0) return 0;
+  const dates = [...new Set(logs.map(l => l.dateStr))].sort((a, b) => new Date(b) - new Date(a));
+  let streak = 0;
+  let target = new Date();
+  const todayStr = target.toLocaleDateString();
+  if (dates[0] !== todayStr) {
+    target.setDate(target.getDate() - 1);
+    if (dates[0] !== target.toLocaleDateString()) return 0;
+  }
+  for (const d of dates) {
+    if (d === target.toLocaleDateString()) {
+      streak++;
+      target.setDate(target.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+};
+
+const getMoodStats = () => {
+  const total = logs.length;
+  if (total === 0) return { total: 0, positivity: 0, topMood: 'N/A', trend: 'stable' };
+
+  const positiveCount = logs.filter(l => l.mood === 'Happy' || l.mood === 'Neutral').length;
+  const positivity = Math.round((positiveCount / total) * 100);
+
+  const moodCounts = logs.reduce((acc, { mood }) => {
+    acc[mood] = (acc[mood] || 0) + 1;
+    return acc;
+  }, {});
+
+  let topMood = 'Happy';
+  let topCount = 0;
+  for (const mood in moodCounts) {
+    if (moodCounts[mood] > topCount) {
+      topCount = moodCounts[mood];
+      topMood = mood;
+    }
+  }
+
+  const recent5 = logs.slice(-5);
+  const recent3 = logs.slice(-3);
+  const r5Pos = recent5.filter(l => l.mood === 'Happy' || l.mood === 'Neutral').length;
+  const r3Pos = recent3.filter(l => l.mood === 'Happy' || l.mood === 'Neutral').length;
+
+  let trend = 'stable';
+  if (recent3.length >= 2 && r3Pos > r5Pos / 2) trend = 'up';
+  else if (recent3.length >= 2 && r3Pos < r5Pos / 2) trend = 'down';
+
+  return { total, positivity, topMood, trend };
+};
+
+const renderHistory = () => {
+  const container = document.getElementById('historyContent');
+  if (logs.length === 0) {
+    container.innerHTML = `<div class="no-hist">No check-ins yet — log your first mood above 🌱</div>`;
+    return;
+  }
+
+  const { total, positivity, topMood, trend } = getMoodStats();
+  const streak = getStreak();
+
+  const trendLabel = trend === 'up' ? '↑ Trending positive' : trend === 'down' ? '↓ Trending down' : '→ Stable pattern';
+  const trendClass = `trend-${trend === 'up' ? 'up' : trend === 'down' ? 'down' : 'stable'}`;
+
+  const last7 = logs.slice(-7);
+  const bars = last7.map(({ energy, dateStr }) => {
+    const h = energy === 'High' ? '90%' : energy === 'Medium' ? '55%' : '20%';
+    const color = energy === 'High' ? '#6ecfb5' : energy === 'Medium' ? '#e8b24a' : '#e87070';
+    const [d, m] = dateStr.split('/');
+    return `<div class="bar-col">
+      <div class="bar-fill" style="background:${color}" data-h="${h}"></div>
+      <div class="bar-lbl">${d}/${m}</div>
+    </div>`;
+  }).join('');
+
+  const recent = logs.slice(-10).reverse();
+  const logItems = recent.map(({ mood, energy, dateStr, name }) => {
+    return `<div class="log-item">
+      <span class="log-emoji">${moodEmoji[mood] || '🙂'}</span>
+      <div class="log-body">
+        <div class="log-meta">${dateStr}</div>
+        <div class="log-info">${name} · ${mood}</div>
+      </div>
+      <div class="log-badge">${energy}</div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="streak-chip">🔥 ${streak} Day Streak</div>
+    <div class="${trendClass} trend-chip">${trendLabel}</div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-lbl">Total Logs</div></div>
+      <div class="stat-card"><div class="stat-val">${positivity}%</div><div class="stat-lbl">Positivity</div></div>
+      <div class="stat-card"><div class="stat-val">${moodEmoji[topMood] || '🙂'}</div><div class="stat-lbl">Top Mood</div></div>
+    </div>
+    <p class="chart-lbl">Energy — Last ${last7.length} entries</p>
+    <div class="bar-chart">${bars}</div>
+    <div class="log-list">${logItems}</div>
+    <button class="btn-danger" id="clearHistoryBtn">× Clear All History</button>`;
+
+  setTimeout(() => {
+    document.querySelectorAll('.bar-fill').forEach(el => {
+      el.style.height = el.dataset.h;
+    });
+  }, 80);
+
+  document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+    if (window.confirm('Clear all history? This cannot be undone.')) {
+      logs = [];
+      localStorage.removeItem('hackops_v3_logs');
+      renderHistory();
+    }
+  });
+};
+
+const openModal = (tip) => {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+
+  const box = document.createElement('div');
+  box.className = 'modal-box';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'modal-close';
+  closeBtn.textContent = '×';
+
+  const eyebrow = document.createElement('p');
+  eyebrow.className = 'm-eyebrow';
+  eyebrow.textContent = 'Deep Dive';
+
+  const title = document.createElement('h3');
+  title.className = 'm-title';
+  title.textContent = tip.label;
+
+  const divider1 = document.createElement('div');
+  divider1.className = 'm-divider';
+
+  const storyBlk = document.createElement('div');
+  storyBlk.className = 'story-blk';
+  storyBlk.innerHTML = `<p class="story-lbl">The Story</p><p class="story-body">${tip.story}</p>`;
+
+  const stepsLbl = document.createElement('p');
+  stepsLbl.className = 'steps-lbl';
+  stepsLbl.textContent = 'The Method — 3 Steps';
+
+  const stepsWrap = document.createElement('div');
+  stepsWrap.className = 'steps-wrap';
+
+  tip.steps.forEach((step, i) => {
+    const row = document.createElement('div');
+    row.className = 'step-row';
+    const num = document.createElement('span');
+    num.className = 'step-num';
+    num.textContent = i + 1;
+    const txt = document.createElement('span');
+    txt.textContent = step;
+    row.appendChild(num);
+    row.appendChild(txt);
+    stepsWrap.appendChild(row);
+  });
+
+  const divider2 = document.createElement('div');
+  divider2.className = 'm-divider';
+
+  const chip = document.createElement('span');
+  chip.className = 'time-chip';
+  chip.innerHTML = `⏱ &nbsp;<strong>${tip.time}</strong>`;
+
+  [closeBtn, eyebrow, title, divider1, storyBlk, stepsLbl, stepsWrap, divider2, chip].forEach(el => box.appendChild(el));
+  backdrop.appendChild(box);
+  document.body.appendChild(backdrop);
+
+  const close = () => {
+    backdrop.style.opacity = '0';
+    backdrop.style.transition = 'opacity .25s ease';
+    setTimeout(() => backdrop.remove(), 280);
+  };
+
+  closeBtn.addEventListener('click', close);
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) close(); });
+  document.addEventListener('keydown', function escFn(e) {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escFn); }
+  });
+};
+
+const findScenario = ({ age, mood, period, reason }) => {
+  const n = parseInt(age);
+  const isPositive = mood === 'Happy' || mood === 'Neutral';
+  if (n < 13) return isPositive ? 'child_good' : 'child_bad';
+  if (period === 'Yes') return isPositive ? 'period_good' : 'period_bad';
+  if (isPositive) return 'teen_good';
+  if (reason === 'School') return 'teen_bad_school';
+  if (reason === 'Social') return 'teen_bad_social';
+  return 'teen_bad_other';
+};
+
+const calcResult = (data) => new Promise(resolve => {
+  console.time('MoodAnalysis');
+  setTimeout(() => {
+    const key = findScenario(data);
+    const scenario = tipsData[key];
+    const title = scenario.title(data.name);
+    const tips = scenario.tips[data.energy].filter(t => t.label).map(t => ({ ...t }));
+    const quotePool = moodQuotes[data.mood] || moodQuotes['Neutral'];
+    const randomIndex = Math.floor(Math.random() * quotePool.length);
+    const { text: qText, author: qAuth } = quotePool[randomIndex];
+    console.timeEnd('MoodAnalysis');
+    console.table(data);
+    resolve({ title, tips, quote: { text: qText, author: qAuth }, rawInput: data });
+  }, 1600);
+});
+
+const showLoading = () => {
+  const res = document.getElementById('resultSection');
+  res.style.display = 'block';
+  res.innerHTML = `<div class="loading-wrap">
+    <div class="ld-dots"><span></span><span></span><span></span></div>
+    <p class="ld-txt">Analysing mood data...</p>
+  </div>`;
+  document.getElementById('formSection').style.display = 'none';
+};
+
+const renderResult = ({ title, tips, quote, rawInput }) => {
+  const res = document.getElementById('resultSection');
+
+  const tipItems = tips.map(tip => `
+    <div class="tip-item" tabindex="0" role="button" data-label="${tip.label}">
+      <span class="tip-dot"></span>
+      <span class="tip-txt">${tip.label}</span>
+      <span class="tip-arr">→</span>
+    </div>`).join('');
+
+  res.innerHTML = `
+    <p class="result-eyebrow">Your Wellness Report</p>
+    <h3 class="result-title">${title}</h3>
+    <div class="quote-block">
+      <p class="quote-txt">"${quote.text}"</p>
+      <p class="quote-auth">— ${quote.author}</p>
+    </div>
+    <div class="tips-list">${tipItems}</div>
+    <div class="res-actions">
+      <button class="btn-teal" id="exportBtn">↓ Export Session Receipt</button>
+      <div class="receipt-out" id="receiptOut"></div>
+      <button class="btn-sec" id="resetBtn">↩ Check In Again</button>
+    </div>`;
+
+  res.querySelectorAll('.tip-item').forEach((el, i) => {
+    const tip = tips[i];
+    el.addEventListener('click', () => openModal(tip));
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openModal(tip); });
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const { name, age, mood, energy, reason } = rawInput;
+    const payload = {
+      profile: { name, age },
+      session: { mood, energy, trigger: reason || 'None' },
+      exported: new Date().toISOString()
+    };
+    const out = document.getElementById('receiptOut');
+    out.textContent = JSON.stringify(payload, null, 2);
+    out.style.display = out.style.display === 'block' ? 'none' : 'block';
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    res.style.display = 'none';
+    res.innerHTML = '';
+    document.getElementById('formSection').style.display = 'block';
+    document.getElementById('nameInput').focus();
+  });
+
+  res.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+const shakeField = (el) => {
+  el.classList.add('shake');
+  el.style.borderColor = '#e87070';
+  el.style.boxShadow = '0 0 0 3px rgba(232,112,112,.18)';
+  setTimeout(() => {
+    el.classList.remove('shake');
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
+  }, 1800);
+  el.focus();
+};
+
+const removeInlineErr = (el) => {
+  const prev = el.parentNode.querySelector('.inline-err');
+  if (prev) prev.remove();
+};
+
+const addInlineErr = (el, msg) => {
+  removeInlineErr(el);
+  const err = document.createElement('p');
+  err.className = 'inline-err';
+  err.textContent = `⚠ ${msg}`;
+  el.parentNode.appendChild(err);
+};
+
+document.getElementById('analyzeBtn').addEventListener('click', () => {
+  const nameEl = document.getElementById('nameInput');
+  const ageEl = document.getElementById('ageInput');
+  const nameVal = nameEl.value.trim();
+  const ageVal = parseInt(ageEl.value);
+
+  removeInlineErr(nameEl);
+  removeInlineErr(ageEl);
+
+  if (!nameVal) {
+    shakeField(nameEl);
+    addInlineErr(nameEl, 'Please enter your name.');
+    return;
+  }
+  if (/\d/.test(nameVal)) {
+    shakeField(nameEl);
+    addInlineErr(nameEl, 'Name cannot contain numbers.');
+    return;
+  }
+  if (BAD_WORDS.some(w => nameVal.toLowerCase().includes(w))) {
+    shakeField(nameEl);
+    addInlineErr(nameEl, 'Please use a valid name.');
+    return;
+  }
+  if (!selectedGender) {
+    const gpicker = document.getElementById('genderPicker');
+    gpicker.style.transition = 'opacity .2s';
+    gpicker.style.opacity = '.5';
+    setTimeout(() => { gpicker.style.opacity = ''; }, 800);
+    addInlineErr(gpicker, 'Please select a gender.');
+    return;
+  }
+  if (isNaN(ageVal) || ageVal < 0 || ageVal > 120) {
+    shakeField(ageEl);
+    addInlineErr(ageEl, 'Please enter a realistic age (0–120).');
+    return;
+  }
+
+  const today = new Date();
+  const entry = {
+    name: nameVal,
+    age: ageVal,
+    gender: selectedGender,
+    mood: selectedMood,
+    energy: selectedEnergy,
+    period: document.getElementById('periodInput').value,
+    reason: document.getElementById('reasonInput').value,
+    dateStr: today.toLocaleDateString(),
+    timestamp: today.getTime()
+  };
+
+  showLoading();
+
+  calcResult(entry).then(result => {
+    logs.push(entry);
+    localStorage.setItem('hackops_v3_logs', JSON.stringify(logs));
+    renderResult(result);
+  }).catch(err => {
+    console.error('Analysis failed:', err);
+    document.getElementById('resultSection').innerHTML = `<p style="color:var(--rose);font-family:'JetBrains Mono',monospace;font-size:.75rem;">Something went wrong. Please try again.</p>`;
+  });
+});
+
+const updateDynFields = () => {
+  const ageVal = parseInt(document.getElementById('ageInput').value) || 0;
+  const periodSec = document.getElementById('periodSection');
+  const reasonSec = document.getElementById('reasonSection');
+  const showPeriod = selectedGender === 'Female' && ageVal >= 12 && ageVal <= 45;
+  periodSec.style.display = showPeriod ? 'block' : 'none';
+  if (!showPeriod) document.getElementById('periodInput').value = 'No';
+  const badMoods = ['Stressed', 'Sad', 'Angry'];
+  reasonSec.style.display = badMoods.includes(selectedMood) ? 'block' : 'none';
+  if (!badMoods.includes(selectedMood)) document.getElementById('reasonInput').value = '';
+};
+
+document.getElementById('genderPicker').addEventListener('click', e => {
+  const pill = e.target.closest('.pill');
+  if (!pill) return;
+  document.querySelectorAll('#genderPicker .pill').forEach(p => p.classList.remove('sel'));
+  pill.classList.add('sel');
+  selectedGender = pill.dataset.val;
+  document.getElementById('genderInput').value = selectedGender;
+  removeInlineErr(document.getElementById('genderPicker'));
+  updateDynFields();
+});
+
+document.getElementById('moodPicker').addEventListener('click', e => {
+  const card = e.target.closest('.mood-card');
+  if (!card) return;
+  document.querySelectorAll('#moodPicker .mood-card').forEach(c => c.classList.remove('sel'));
+  card.classList.add('sel');
+  selectedMood = card.dataset.mood;
+  document.getElementById('moodInput').value = selectedMood;
+  updateDynFields();
+});
+
+document.getElementById('energyPicker').addEventListener('click', e => {
+  const card = e.target.closest('.energy-card');
+  if (!card) return;
+  document.querySelectorAll('#energyPicker .energy-card').forEach(c => c.classList.remove('sel'));
+  card.classList.add('sel');
+  selectedEnergy = card.dataset.energy;
+  document.getElementById('energyInput').value = selectedEnergy;
+});
+
+document.getElementById('ageInput').addEventListener('input', e => {
+  const val = parseInt(e.target.value);
+  if (!isNaN(val) && (val < 0 || val > 120)) {
+    addInlineErr(e.target, 'Enter a realistic age.');
+  } else {
+    removeInlineErr(e.target);
+  }
+  updateDynFields();
+});
+
+document.getElementById('nameInput').addEventListener('input', e => {
+  if (/\d/.test(e.target.value)) {
+    addInlineErr(e.target, 'Numbers are not allowed in names.');
+  } else {
+    removeInlineErr(e.target);
+  }
+});
+
+document.querySelector('.tab-nav').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  const tab = btn.dataset.tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if (tab === 'history') renderHistory();
+});
+
+const themeBtn = document.getElementById('themeBtn');
+themeBtn.addEventListener('click', () => {
+  isDark = !isDark;
+  document.body.classList.toggle('light', !isDark);
+  themeBtn.textContent = isDark ? '☀️' : '🌙';
+});
+
+const breathCircle = document.getElementById('breathCircle');
+const breathInstr = document.getElementById('breathInstr');
+const breathStartBtn = document.getElementById('breathStartBtn');
+const breathResetBtn = document.getElementById('breathResetBtn');
+
+const createBreathCtrl = () => {
+  let interval = null;
+  let timeoutB = null;
+  let timeoutC = null;
+
+  const stop = () => {
+    clearInterval(interval);
+    clearTimeout(timeoutB);
+    clearTimeout(timeoutC);
+    interval = null;
+  };
+
+  const runCycle = () => {
+    breathInstr.textContent = 'Breathe in… (4s)';
+    breathCircle.style.transform = 'scale(1.55)';
+
+    timeoutB = setTimeout(() => {
+      breathInstr.textContent = 'Hold… (7s)';
+
+      timeoutC = setTimeout(() => {
+        breathInstr.textContent = 'Breathe out slowly… (8s)';
+        breathCircle.style.transform = 'scale(1)';
+      }, 7000);
+    }, 4000);
+  };
+
+  const start = () => {
+    stop();
+    breathStartBtn.textContent = 'Restart';
+    runCycle();
+    interval = setInterval(runCycle, 19000);
+  };
+
+  const reset = () => {
+    stop();
+    breathCircle.style.transform = 'scale(1)';
+    breathCircle.textContent = 'Ready';
+    breathInstr.textContent = "Press start when you're ready";
+    breathStartBtn.textContent = 'Start';
+  };
+
+  return { start, reset };
+};
+
+const breathCtrl = createBreathCtrl();
+breathStartBtn.addEventListener('click', () => breathCtrl.start());
+breathResetBtn.addEventListener('click', () => breathCtrl.reset());
+
+window.addEventListener('DOMContentLoaded', () => {
+  const hour = new Date().getHours();
+  const greeting = document.getElementById('greeting');
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  if (hour >= 5 && hour < 12) {
+    greeting.textContent = 'Good morning — how are you?';
+  } else if (hour >= 12 && hour < 17) {
+    greeting.textContent = 'Good afternoon — how are you doing?';
+  } else if (hour >= 22 || hour < 5) {
+    greeting.textContent = 'Late night? How are you holding up?';
+  }
+
+  document.getElementById('devBadge').textContent = isMobile ? '📱 Mobile' : '💻 Desktop';
+
+  console.log('Mood-O-Meter v3 loaded.');
+  console.warn('Some features require localStorage to be enabled.');
+
+  const splash = document.getElementById('splash');
+  const app = document.getElementById('app');
+
+  setTimeout(() => {
+    splash.style.opacity = '0';
+    splash.style.transform = 'scale(.94) translateY(-16px)';
+    setTimeout(() => {
+      splash.style.display = 'none';
+      app.style.display = 'block';
+    }, 700);
+  }, 2200);
+});
+</script>
+</body>
+</html>
